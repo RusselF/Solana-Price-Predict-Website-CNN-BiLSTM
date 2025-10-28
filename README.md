@@ -85,7 +85,7 @@ pytest
 ```
 👨‍💻 Author
 Russel Figo
-💼 AI & Web Developer — Universitas Bunda Mulia
+💼 AI & Web Developer
 📧 russelfigo08@gmail.com
 
 🌐 github.com/RusselF
