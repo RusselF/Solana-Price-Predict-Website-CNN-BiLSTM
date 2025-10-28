@@ -57,3 +57,28 @@ git clone https://github.com/RusselF/Solana-Price-Predict-Website-CNN-BiLSTM.git
 
 # Navigate into project
 cd Solana-Price-Predict-Website-CNN-BiLSTM
+
+🐍 Backend (FastAPI)
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+⚛️ Frontend (React + Vite)
+cd frontend
+npm install
+
+▶️ Usage
+Run Backend (FastAPI)
+uvicorn app:app --reload
+
+Run Frontend (Vite)
+npm run dev
+
+🧪 Testing
+
+Frontend:
+npm test
+
+Backend:
+pytest
