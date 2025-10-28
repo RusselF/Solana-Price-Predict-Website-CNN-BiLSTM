@@ -82,3 +82,10 @@ npm test
 
 Backend:
 pytest
+```
+👨‍💻 Author
+Russel Figo
+💼 AI & Web Developer — Universitas Bunda Mulia
+📧 russelfigo08@gmail.com
+
+🌐 github.com/RusselF
