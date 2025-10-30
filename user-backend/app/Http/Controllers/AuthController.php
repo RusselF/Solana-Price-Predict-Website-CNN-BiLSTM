@@ -20,7 +20,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'user', // pastikan kolom role ada di tabel users
+            'role' => 'user',
         ]);
 
         return response()->json(['message' => 'User registered', 'user' => $user], 201);
