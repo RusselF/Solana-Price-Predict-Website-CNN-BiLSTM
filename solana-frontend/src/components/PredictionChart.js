@@ -31,8 +31,27 @@ function mergeByDate({ history = [], evalPairs = [], forecast = [] }) {
   return Array.from(map.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
-function PredictionChart({ history, evalPairs, forecast }) {
-  const data = useMemo(() => mergeByDate({ history, evalPairs, forecast }), [history, evalPairs, forecast]);
+function PredictionChart({ history, evalPairs, forecast, predictionType = "monthly" }) {
+  const data = useMemo(() => {
+    const merged = mergeByDate({ history, evalPairs, forecast });
+    
+    // Jika daily prediction, batasi forecast hanya 1 hari
+    if (predictionType === "daily") {
+      // Cari index pertama yang punya price_forecast
+      const firstForecastIndex = merged.findIndex(row => row.price_forecast !== undefined);
+      
+      if (firstForecastIndex !== -1) {
+        // Hapus semua forecast setelah hari pertama
+        merged.forEach((row, idx) => {
+          if (idx > firstForecastIndex && row.price_forecast !== undefined) {
+            delete row.price_forecast;
+          }
+        });
+      }
+    }
+    
+    return merged;
+  }, [history, evalPairs, forecast, predictionType]);
 
   return (
     <ResponsiveContainer width="100%" height={420}>
@@ -41,25 +60,35 @@ function PredictionChart({ history, evalPairs, forecast }) {
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip />
-        <Legend />
+        <Legend 
+          layout="vertical" 
+          align="right" 
+          verticalAlign="top"
+          wrapperStyle={{
+            paddingLeft: '10px',
+            paddingTop: '10px'
+          }}
+        />
 
-        {/* Context: actual history (tipis) */}
+        {/* Context: actual history (lebih tebal) */}
         <Line
           type="monotone"
           dataKey="price_history"
           name="Actual (History)"
           stroke="#999999"
+          strokeWidth={2.5}
           strokeDasharray="3 3"
           dot={false}
           isAnimationActive={false}
         />
 
-        {/* Main comparison: Actual vs Predicted (paired) */}
+        {/* Main comparison: Actual vs Predicted (tebal) */}
         <Line
           type="monotone"
           dataKey="actual"
           name="Actual (Eval)"
           stroke="#1f77b4"
+          strokeWidth={3}
           dot={false}
         />
         <Line
@@ -67,15 +96,17 @@ function PredictionChart({ history, evalPairs, forecast }) {
           dataKey="predicted"
           name="Predicted (Eval)"
           stroke="#2ca02c"
+          strokeWidth={3}
           dot={false}
         />
 
-        {/* Context: predicted 30-days ahead (putus-putus) */}
+        {/* Context: forecast (tebal, putus-putus) */}
         <Line
           type="monotone"
           dataKey="price_forecast"
-          name="Forecast (Next 30d)"
+          name={predictionType === "daily" ? "Forecast (Next Day)" : "Forecast (Next 30d)"}
           stroke="#ff7f0e"
+          strokeWidth={3}
           strokeDasharray="5 5"
           dot={false}
         />

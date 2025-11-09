@@ -18,7 +18,19 @@ function MonthlyPrediction() {
       .then(res => {
         setProgress("✅ Memproses data...");
         setTimeout(() => {
-          setData(res.data);
+          // Ambil 30-60 hari terakhir dari history sebagai context
+          const fullHistory = res.data.history || [];
+          const contextHistory = fullHistory.slice(-60); // 60 hari terakhir
+          
+          // Untuk eval, ambil 30 hari terakhir saja (overlap dengan window)
+          const fullEval = res.data.eval || [];
+          const contextEval = fullEval.slice(-30); // 30 hari terakhir
+          
+          setData({
+            ...res.data,
+            history: contextHistory,
+            eval: contextEval
+          });
           setInitialLoading(false);
         }, 300);
       })
@@ -120,6 +132,13 @@ function MonthlyPrediction() {
     );
   }
 
+  // Calculate statistics for forecast
+  const forecastData = data.forecast || [];
+  const prices = forecastData.map(f => f.price);
+  const avgPrice = prices.length > 0 ? (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2) : 0;
+  const minPrice = prices.length > 0 ? Math.min(...prices).toFixed(2) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices).toFixed(2) : 0;
+
   return (
     <div style={{ paddingTop: "80px", padding: 20, background: colors.bg, minHeight: "100vh" }}>
       <div style={{ 
@@ -133,7 +152,7 @@ function MonthlyPrediction() {
         <div>
           <h2 style={{ margin: "0 0 5px 0", color: colors.text }}>📆 Prediksi Bulanan</h2>
           <p style={{ margin: 0, color: colors.textSecondary, fontSize: "14px" }}>
-            Analisis tren harga Solana dalam skala bulanan
+            Prediksi 30 hari ke depan berdasarkan window 60 hari
           </p>
         </div>
         <div style={{
@@ -162,10 +181,13 @@ function MonthlyPrediction() {
           borderRadius: 8
         }}>
           <div style={{ fontSize: "13px", color: colors.warningText, fontWeight: "500" }}>
-            📊 Data Historis
+            📊 Window Historis
           </div>
           <div style={{ fontSize: "20px", fontWeight: "bold", color: colors.warningText, marginTop: 5 }}>
             {data.history?.length || 0} hari
+          </div>
+          <div style={{ fontSize: "11px", color: colors.warningText, marginTop: 3, opacity: 0.8 }}>
+            (30-60 hari terakhir)
           </div>
         </div>
 
@@ -181,6 +203,9 @@ function MonthlyPrediction() {
           <div style={{ fontSize: "20px", fontWeight: "bold", color: colors.infoText, marginTop: 5 }}>
             {data.eval?.length || 0} hari
           </div>
+          <div style={{ fontSize: "11px", color: colors.infoText, marginTop: 3, opacity: 0.8 }}>
+            (30 hari terakhir)
+          </div>
         </div>
 
         <div style={{
@@ -195,6 +220,9 @@ function MonthlyPrediction() {
           <div style={{ fontSize: "20px", fontWeight: "bold", color: colors.successText, marginTop: 5 }}>
             {data.forecast?.length || 0} hari
           </div>
+          <div style={{ fontSize: "11px", color: colors.successText, marginTop: 3, opacity: 0.8 }}>
+            (30 hari ke depan)
+          </div>
         </div>
       </div>
 
@@ -204,13 +232,196 @@ function MonthlyPrediction() {
         padding: 20,
         borderRadius: 12,
         border: `1px solid ${colors.cardBorder}`,
-        boxShadow: `0 1px 3px ${colors.shadow}`
+        boxShadow: `0 1px 3px ${colors.shadow}`,
+        marginBottom: 25
       }}>
         <PredictionChart
           history={data.history}
           evalPairs={data.eval}
           forecast={data.forecast}
+          predictionType="monthly"
         />
+      </div>
+
+      {/* Forecast Statistics */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+        gap: 15,
+        marginBottom: 25
+      }}>
+        <div style={{
+          padding: 15,
+          background: colors.cardBg,
+          border: `1px solid ${colors.cardBorder}`,
+          borderRadius: 8,
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "13px", color: colors.textSecondary, fontWeight: "500" }}>
+            📊 Harga Rata-rata
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: colors.purple, marginTop: 5 }}>
+            ${avgPrice}
+          </div>
+        </div>
+
+        <div style={{
+          padding: 15,
+          background: colors.cardBg,
+          border: `1px solid ${colors.cardBorder}`,
+          borderRadius: 8,
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "13px", color: colors.textSecondary, fontWeight: "500" }}>
+            📉 Harga Terendah
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#dc2626", marginTop: 5 }}>
+            ${minPrice}
+          </div>
+        </div>
+
+        <div style={{
+          padding: 15,
+          background: colors.cardBg,
+          border: `1px solid ${colors.cardBorder}`,
+          borderRadius: 8,
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "13px", color: colors.textSecondary, fontWeight: "500" }}>
+            📈 Harga Tertinggi
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#16a34a", marginTop: 5 }}>
+            ${maxPrice}
+          </div>
+        </div>
+      </div>
+
+      {/* Forecast Table */}
+      <div style={{
+        background: colors.cardBg,
+        padding: 20,
+        borderRadius: 12,
+        border: `1px solid ${colors.cardBorder}`,
+        boxShadow: `0 1px 3px ${colors.shadow}`,
+        marginBottom: 25
+      }}>
+        <h3 style={{ margin: "0 0 15px 0", color: colors.text, fontSize: "18px" }}>
+          📋 Tabel Prediksi 30 Hari Ke Depan
+        </h3>
+        
+        <div style={{ overflowX: "auto" }}>
+          <table style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "14px"
+          }}>
+            <thead>
+              <tr style={{ background: colors.bgSecondary }}>
+                <th style={{
+                  padding: "12px",
+                  textAlign: "left",
+                  color: colors.text,
+                  fontWeight: "600",
+                  borderBottom: `2px solid ${colors.border}`
+                }}>
+                  No
+                </th>
+                <th style={{
+                  padding: "12px",
+                  textAlign: "left",
+                  color: colors.text,
+                  fontWeight: "600",
+                  borderBottom: `2px solid ${colors.border}`
+                }}>
+                  📅 Tanggal
+                </th>
+                <th style={{
+                  padding: "12px",
+                  textAlign: "right",
+                  color: colors.text,
+                  fontWeight: "600",
+                  borderBottom: `2px solid ${colors.border}`
+                }}>
+                  💰 Harga Prediksi (USD)
+                </th>
+                <th style={{
+                  padding: "12px",
+                  textAlign: "right",
+                  color: colors.text,
+                  fontWeight: "600",
+                  borderBottom: `2px solid ${colors.border}`
+                }}>
+                  📊 Perubahan
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecastData.map((item, index) => {
+                const prevPrice = index > 0 ? forecastData[index - 1].price : null;
+                const change = prevPrice ? ((item.price - prevPrice) / prevPrice * 100).toFixed(2) : null;
+                const isPositive = change && parseFloat(change) > 0;
+                const isNegative = change && parseFloat(change) < 0;
+
+                return (
+                  <tr 
+                    key={index}
+                    style={{
+                      background: index % 2 === 0 ? colors.cardBg : colors.bgSecondary,
+                      transition: "background 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = colors.bgTertiary}
+                    onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? colors.cardBg : colors.bgSecondary}
+                  >
+                    <td style={{
+                      padding: "12px",
+                      color: colors.textSecondary,
+                      borderBottom: `1px solid ${colors.border}`
+                    }}>
+                      {index + 1}
+                    </td>
+                    <td style={{
+                      padding: "12px",
+                      color: colors.text,
+                      fontWeight: "500",
+                      borderBottom: `1px solid ${colors.border}`
+                    }}>
+                      {item.date}
+                    </td>
+                    <td style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      color: colors.purple,
+                      fontWeight: "600",
+                      fontSize: "15px",
+                      borderBottom: `1px solid ${colors.border}`
+                    }}>
+                      ${item.price.toFixed(2)}
+                    </td>
+                    <td style={{
+                      padding: "12px",
+                      textAlign: "right",
+                      borderBottom: `1px solid ${colors.border}`
+                    }}>
+                      {change ? (
+                        <span style={{
+                          color: isPositive ? "#16a34a" : isNegative ? "#dc2626" : colors.textSecondary,
+                          fontWeight: "500",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }}>
+                          {isPositive ? "↑" : isNegative ? "↓" : "→"} {Math.abs(parseFloat(change))}%
+                        </span>
+                      ) : (
+                        <span style={{ color: colors.textSecondary }}>-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Additional Info */}
@@ -222,13 +433,30 @@ function MonthlyPrediction() {
         fontSize: "13px",
         color: colors.textSecondary
       }}>
-        <div style={{ fontWeight: "500", marginBottom: 5, color: colors.text }}>📝 Catatan:</div>
+        <div style={{ fontWeight: "500", marginBottom: 5, color: colors.text }}>📝 Cara Kerja Prediksi Bulanan:</div>
         <ul style={{ margin: 0, paddingLeft: 20 }}>
-          <li>Data historis menunjukkan pergerakan harga aktual Solana</li>
-          <li>Data evaluasi membandingkan prediksi model vs harga aktual</li>
-          <li>Prediksi masa depan menunjukkan proyeksi harga 30 hari ke depan</li>
-          <li>Model menggunakan CNN-BiLSTM dengan window 60 hari</li>
+          <li><b>Window 60 hari:</b> Model menggunakan 60 hari historis sebagai input</li>
+          <li><b>30 hari evaluasi:</b> Membandingkan prediksi model vs harga aktual untuk validasi akurasi</li>
+          <li><b>30 hari prediksi:</b> Proyeksi harga untuk 30 hari ke depan berdasarkan window</li>
+          <li><b>Model CNN-BiLSTM:</b> Menangkap pola temporal dan spatial dalam data harga</li>
         </ul>
+      </div>
+
+      <div style={{
+        marginTop: 15,
+        padding: 15,
+        background: "#fef3c7",
+        border: "1px solid #fbbf24",
+        borderRadius: 8,
+        fontSize: "13px",
+        color: "#78350f"
+      }}>
+        <div style={{ fontWeight: "500", marginBottom: 5 }}>⚠️ Perhatian:</div>
+        <p style={{ margin: 0 }}>
+          Tabel di atas menampilkan prediksi harga untuk <b>30 hari ke depan</b>. 
+          Kolom "Perubahan" menunjukkan persentase kenaikan/penurunan dibanding hari sebelumnya. 
+          Prediksi ini berdasarkan analisis pola historis dan bukan jaminan harga aktual.
+        </p>
       </div>
     </div>
   );

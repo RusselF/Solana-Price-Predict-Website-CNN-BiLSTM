@@ -13,7 +13,6 @@ import AdminPage from "./pages/AdminPage";
 function AppContent({ isAdmin, setIsAdmin }) {
   const location = useLocation();
   
-  // Toggle button hanya muncul di daily dan monthly
   const showThemeToggle = ["/daily", "/monthly"].includes(location.pathname);
 
   return (
@@ -39,9 +38,14 @@ function App() {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      if (user.role === "admin") {
-        setIsAdmin(true);
+      try {
+        const user = JSON.parse(storedUser);
+        if (user.role === "admin") {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        localStorage.removeItem("user");
       }
     }
   }, []);
