@@ -51,7 +51,8 @@ function MonthlyPrediction() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "60vh",
-        background: colors.bg
+        background: colors.bg,
+        transform: "translateY(40px)"
       }}>
         <div style={{
           padding: 30,
@@ -101,7 +102,7 @@ function MonthlyPrediction() {
 
   if (error || (!data && !initialLoading)) {
     return (
-      <div style={{ padding: 20, background: colors.bg, minHeight: "60vh" }}>
+      <div style={{ paddingTop: "110px", padding: 20, background: colors.bg, minHeight: "100vh" }}>
         <div style={{
           padding: 20,
           background: colors.error,
