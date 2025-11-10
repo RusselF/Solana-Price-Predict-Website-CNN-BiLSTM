@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+axios.defaults.withCredentials = false; // penting, nonaktifkan CSRF cookie
+
 const AUTH_API_URL = "http://127.0.0.1:8000/api";
 
 function RegisterPage() {

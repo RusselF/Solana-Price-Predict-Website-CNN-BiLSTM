@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 function Sidebar({ role, isOpen, onClose }) {
   return (
     <>
-      {/* Overlay hitam, klik untuk nutup */}
       {isOpen && (
         <div
           onClick={onClose}
@@ -20,11 +19,10 @@ function Sidebar({ role, isOpen, onClose }) {
         ></div>
       )}
 
-      {/* Sidebar */}
       <div
         style={{
-          width: "200px",
-          background: "#1a1a1a",
+          width: "220px",
+          background: "#111",
           color: "#fff",
           height: "100vh",
           padding: "20px",
@@ -33,40 +31,39 @@ function Sidebar({ role, isOpen, onClose }) {
           left: isOpen ? "0" : "-100%",
           transition: "left 0.3s ease",
           zIndex: 1000,
+          boxShadow: "2px 0 8px rgba(0,0,0,0.3)",
         }}
       >
-        <h3 style={{ marginBottom: "30px" }}>
+        <h3 style={{ marginBottom: "30px", color: "#00FFA3" }}>
           {role === "admin" ? "Admin Panel" : "User Panel"}
         </h3>
 
-        {role === "admin" ? (
+        <p>
+          <Link to="/" style={{ color: "#fff" }} onClick={onClose}>
+            🏠 Home
+          </Link>
+        </p>
+        <p>
+          <Link to="/daily" style={{ color: "#fff" }} onClick={onClose}>
+            📅 Prediksi Harian
+          </Link>
+        </p>
+        <p>
+          <Link to="/monthly" style={{ color: "#fff" }} onClick={onClose}>
+            📆 Prediksi Bulanan
+          </Link>
+        </p>
+
+        {role === "admin" && (
           <>
+            <hr style={{ border: "0.5px solid #333", margin: "15px 0" }} />
             <p>
-              <Link to="/admin" style={{ color: "#fff" }} onClick={onClose}>
-                🏠 Dashboard
-              </Link>
-            </p>
-            <p>
-              <Link to="/admin/users" style={{ color: "#fff" }} onClick={onClose}>
-                👥 Kelola User
-              </Link>
-            </p>
-            <p>
-              <Link to="/admin/reports" style={{ color: "#fff" }} onClick={onClose}>
-                📊 Laporan
-              </Link>
-            </p>
-          </>
-        ) : (
-          <>
-            <p>
-              <Link to="/daily" style={{ color: "#fff" }} onClick={onClose}>
-                📅 Prediksi Harian
-              </Link>
-            </p>
-            <p>
-              <Link to="/monthly" style={{ color: "#fff" }} onClick={onClose}>
-                📆 Prediksi Bulanan
+              <Link
+                to="/admin"
+                style={{ color: "#00FFA3", fontWeight: "bold" }}
+                onClick={onClose}
+              >
+                📘 Documentation
               </Link>
             </p>
           </>

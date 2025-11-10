@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+axios.defaults.withCredentials = false;
+
 const AUTH_API_URL = "http://127.0.0.1:8000/api";
 
-function LoginPage({ setIsAdmin }) {
+function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,17 +24,15 @@ function LoginPage({ setIsAdmin }) {
         email,
         password,
       });
+      const { user, token } = response.data;
 
-      const userData = response.data;
-      localStorage.setItem("user", JSON.stringify(userData));
+      // simpan data ke localStorage
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", token);
 
-      if (userData.role === "admin") {
-        setIsAdmin(true);
-        navigate("/admin");
-      } else {
-        setIsAdmin(false);
-        navigate("/");
-      }
+      // masuk ke landing page untuk semua role
+      navigate("/");
+      window.location.reload(); // refresh biar navbar & sidebar update user
     } catch (err) {
       const message =
         err.response?.data?.message ||

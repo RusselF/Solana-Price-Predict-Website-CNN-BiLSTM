@@ -11,19 +11,23 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         // Admin default
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@solana.app',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@solana.app'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+            ]
+        );
 
-        // Contoh user biasa (opsional)
-        User::create([
-            'name' => 'User Demo',
-            'email' => 'user@solana.app',
-            'password' => Hash::make('user123'),
-            'role' => 'user',
-        ]);
+        // User biasa
+        User::updateOrCreate(
+            ['email' => 'user@solana.app'],
+            [
+                'name' => 'User',
+                'password' => Hash::make('user123'),
+                'role' => 'user',
+            ]
+        );
     }
 }
