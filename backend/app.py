@@ -59,12 +59,12 @@ _PRICE_CACHE: dict[Tuple[str, str, str], Tuple[pd.DataFrame, float]] = {}
 PRICE_TTL_SEC = 1800  # 30 menit (lebih lama dari 5 menit)
 
 _FORECAST_CACHE: dict[Tuple[str, str], Tuple[dict, float]] = {}
-FORECAST_TTL_SEC = 1800  # 30 menit
+FORECAST_TTL_SEC = 120  # 30 menit
 
 # Flag untuk prevent duplicate downloads
 _DOWNLOAD_LOCKS = {}
 
-async def get_prices_cached_async(symbol="SOL-USD", period="2y", interval="1d") -> pd.DataFrame:
+async def get_prices_cached_async(symbol="SOL-USD", period="max", interval="1d") -> pd.DataFrame:
     """Async wrapper untuk download yfinance dengan caching."""
     key = (symbol, period, interval)
     now = time.time()
@@ -163,7 +163,7 @@ async def warm_cache_background():
     try:
         print("[Background] Starting cache warm-up...")
         # Pre-load 2y data (lebih cepat dari max)
-        await get_prices_cached_async("SOL-USD", "2y", "1d")
+        await get_prices_cached_async("SOL-USD", "max", "1d")
         print("[Background] Cache warmed successfully!")
     except Exception as e:
         print(f"[Background] Warm cache failed: {e}")
@@ -188,7 +188,7 @@ async def health():
     return {"status": "ok", "cache": cache_info}
 
 @app.get("/predict")
-async def predict(period: str = Query("2y", description="yfinance period")):
+async def predict(period: str = Query("max", description="yfinance period")):
     """Prediksi next day berdasarkan window terakhir."""
     df = await get_prices_cached_async("SOL-USD", period, "1d")
     series_scaled = scaler.transform(df[["Close"]].values)
@@ -215,7 +215,7 @@ async def predict(period: str = Query("2y", description="yfinance period")):
 @app.get("/predict_date")
 async def predict_date(
     target_date: str,
-    period: str = Query("2y", description="yfinance period")
+    period: str = Query("max", description="yfinance period")
 ):
     """Prediksi harga pada tanggal tertentu (maks 60 hari)."""
     df = await get_prices_cached_async("SOL-USD", period, "1d")
@@ -258,7 +258,7 @@ async def predict_date(
     )
 
 @app.get("/forecast")
-async def forecast(period: str = Query("2y", description="yfinance period")):
+async def forecast(period: str = Query("max", description="yfinance period")):
     """
     History (60 days) + Eval (60 days paired) + Forecast (30 days ahead).
     Menggunakan cache untuk response yang cepat.
