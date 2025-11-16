@@ -10,7 +10,6 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin default
         User::updateOrCreate(
             ['email' => 'admin@solana.app'],
             [
@@ -20,7 +19,6 @@ class AdminSeeder extends Seeder
             ]
         );
 
-        // User biasa
         User::updateOrCreate(
             ['email' => 'user@solana.app'],
             [

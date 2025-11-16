@@ -9,6 +9,7 @@ import MonthlyPrediction from "./pages/MonthlyPrediction";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminPage from "./pages/AdminPage";
+import AboutPage from "./pages/AboutPage";
 
 function AppContent({ isAdmin, setIsAdmin }) {
   const location = useLocation();
@@ -26,6 +27,7 @@ function AppContent({ isAdmin, setIsAdmin }) {
         <Route path="/monthly" element={<MonthlyPrediction />} />
         <Route path="/login" element={<LoginPage setIsAdmin={setIsAdmin} />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </>

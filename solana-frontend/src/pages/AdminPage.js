@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeToggle } from "../components/ThemeToggle";
+
 import {
   LineChart,
   Line,
@@ -12,125 +13,113 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+
 import trainLossImage from "../assets/trainloss.png";
 
 const FAST_API_URL = "http://localhost:8001";
 
-// Format currency helper
+// Currency helper
 const currency = (v) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(v);
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
 
-// Fetch forecast data from FastAPI
+// ============================
+// FETCH FORECAST DATA
+// ============================
 function useForecastData() {
   const [data, setData] = useState({
     eval: [],
     forecast: [],
     history: [],
-    train_loss: [],
-    val_loss: [],
+    summary: [],
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-
     fetch(`${FAST_API_URL}/forecast`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (mounted) setData(json);
-      })
-      .catch((err) => {
-        if (mounted) setError(err.message || String(err));
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+      .then((res) => res.json())
+      .then((json) => setData(json))
+      .finally(() => setLoading(false));
   }, []);
 
-  return { ...data, loading, error };
+  return { ...data, loading };
 }
 
-// Compute RMSE, MAPE, etc.
-function computeMetrics(pairs) {
-  if (!pairs || pairs.length === 0) {
-    return { rmseUsd: 0, rmsePct: 0, mape: 0, count: 0 };
-  }
+// ============================
+// KPI METRICS
+// ============================
+function computeMetrics(evalData) {
+  if (!evalData || evalData.length === 0)
+    return { rmseUsd: 0, rmsePct: 0, mape: 0 };
 
   let se = 0;
   let apeSum = 0;
-  let count = 0;
   let actSum = 0;
 
-  for (const row of pairs) {
+  for (const row of evalData) {
     const a = Number(row.actual);
     const p = Number(row.predicted);
     const diff = p - a;
     se += diff * diff;
     actSum += a;
-    if (a !== 0) {
-      apeSum += Math.abs(diff / a);
-      count++;
-    }
+    if (a !== 0) apeSum += Math.abs(diff / a);
   }
 
-  const n = pairs.length;
+  const n = evalData.length;
   const rmseUsd = Math.sqrt(se / n);
   const avgAct = actSum / n;
-  const rmsePct = avgAct !== 0 ? (rmseUsd / avgAct) * 100 : 0;
-  const mape = count > 0 ? (apeSum / count) * 100 : 0;
+  const rmsePct = (rmseUsd / avgAct) * 100;
+  const mape = (apeSum / n) * 100;
 
-  return { rmseUsd, rmsePct, mape, count: n };
+  return { rmseUsd, rmsePct, mape };
 }
 
-// KPI component
+// ============================
+// KPI Component
+// ============================
 function Kpi({ label, value, hint, icon }) {
   return (
-    <div className="rounded-xl shadow-sm p-5 bg-white border border-gray-100 hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-700">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
-          {hint && <div className="mt-1 text-xs text-gray-400">{hint}</div>}
+    <div className="rounded-xl bg-white dark:bg-gray-800 p-6 shadow-md hover:shadow-lg transition">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+          <p className="text-3xl font-bold mt-1 text-gray-800 dark:text-gray-50">{value}</p>
+          <p className="text-xs text-gray-400">{hint}</p>
         </div>
-        {icon && <div className="text-3xl opacity-20">{icon}</div>}
+        <div className="text-4xl opacity-25">{icon}</div>
       </div>
     </div>
   );
 }
 
-// Chart components
+// ============================
+// CHARTS
+// ============================
 function EvalChart({ evalData }) {
-  const chartData = useMemo(
-    () =>
-      evalData.map((d) => ({
-        date: d.date,
-        Actual: Number(d.actual),
-        Predicted: Number(d.predicted),
-      })),
-    [evalData]
-  );
+  const data = evalData.map((d) => ({
+    date: d.date,
+    Actual: Number(d.actual),
+    Predicted: Number(d.predicted),
+  }));
 
   return (
     <div className="h-96 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+      <ResponsiveContainer>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
           <Tooltip formatter={(v) => currency(v)} />
           <Legend />
-          <Line type="monotone" dataKey="Actual" stroke="#10b981" dot={false} />
-          <Line type="monotone" dataKey="Predicted" stroke="#3b82f6" strokeDasharray="5 5" dot={false} />
+
+          <Line type="monotone" dataKey="Actual" stroke="#10b981" strokeWidth={3} dot={false} />
+          <Line
+            type="monotone"
+            dataKey="Predicted"
+            stroke="#3b82f6"
+            strokeWidth={3}
+            strokeDasharray="5 5"
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -138,163 +127,162 @@ function EvalChart({ evalData }) {
 }
 
 function ForecastChart({ forecast }) {
-  const chartData = useMemo(
-    () => forecast.map((d) => ({ date: d.date, Price: Number(d.price) })),
-    [forecast]
-  );
+  const data = forecast.map((d) => ({
+    date: d.date,
+    Price: Number(d.price),
+  }));
 
   return (
     <div className="h-80 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
+      <ResponsiveContainer>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
           <Tooltip formatter={(v) => currency(v)} />
           <Legend />
-          <Line type="monotone" dataKey="Price" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="Price" stroke="#8b5cf6" strokeWidth={3} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-function LossChart() {
-  return (
-    <div className="w-full flex flex-col items-center justify-center">
-      <img
-        src={trainLossImage}
-        alt="Training and Validation Loss Chart"
-        className="rounded-xl shadow-md border border-gray-100 max-w-full h-auto dark:border-gray-700"
-      />
-      <p className="text-gray-500 text-sm mt-3 dark:text-gray-400">
-        Figure: Model Training & Validation Loss Curve
-      </p>
-    </div>
-  );
-}
-
-function ForecastTable({ forecast }) {
-  return (
-    <div className="overflow-x-auto mt-4 border rounded-lg dark:border-gray-700">
-      <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
-        <thead className="bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-          <tr>
-            <th className="px-4 py-2 text-left">Date</th>
-            <th className="px-4 py-2 text-right">Predicted Price (USD)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {forecast.map((row, i) => (
-            <tr key={i} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-              <td className="px-4 py-2">{row.date}</td>
-              <td className="px-4 py-2 text-right">{currency(row.price)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
+// ============================
+// ADMIN PAGE (MAIN)
+// ============================
 export default function AdminPage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  useEffect(() => {
-    if (!user || user.role !== "admin") navigate("/login");
-  }, [user, navigate]);
+  const { eval: evalData, forecast, history, loading } = useForecastData();
+  const metrics = computeMetrics(evalData);
 
-  const { eval: evalData, forecast, loading, error } = useForecastData();
-  const metrics = useMemo(() => computeMetrics(evalData), [evalData]);
-  const lastEvalDate = useMemo(
-    () => (evalData.length ? evalData[evalData.length - 1].date : "-"),
-    [evalData]
-  );
+  const lastEvalDate = evalData.length ? evalData.at(-1).date : "-";
 
   if (!user || user.role !== "admin") return null;
 
-  const bgColor = theme === "dark" ? "bg-gray-900" : "bg-gray-50";
-  const textColor = theme === "dark" ? "text-gray-100" : "text-gray-900";
-
   return (
-    <div className={`min-h-screen ${bgColor} pt-20 pb-8 transition-colors duration-300`}>
+    <div className={`min-h-screen pt-20 pb-16 ${theme === "dark" ? "bg-gray-900" : "bg-gray-50"}`}>
+      <div className="max-w-7xl mx-auto px-6 space-y-10">
 
-      {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pt-8">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-white shadow-lg">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">📊 Model Documentation</h1>
-              <p className="text-purple-100 text-lg">
-                Evaluation Metrics & Forecast Visualization
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-sm">
-              <div className="opacity-80">FastAPI Endpoint</div>
-              <code className="font-mono text-xs">{FAST_API_URL}</code>
-              <div className="mt-2 opacity-80">Last Evaluation</div>
-              <div className="font-semibold">{lastEvalDate}</div>
-            </div>
-          </div>
-        </div>
+        {/* ========================= */}
+        {/* HEADER */}
+        {/* ========================= */}
+        <header className="bg-gradient-to-r from-purple-600 to-blue-600 p-10 rounded-3xl shadow-lg text-white">
+          <h1 className="text-4xl font-bold">📊 Model Documentation</h1>
+          <p className="text-purple-100 text-lg">Evaluation Metrics & Forecast Visualization</p>
+          <p className="mt-2 text-md">Last Evaluation: <b>{lastEvalDate}</b></p>
+        </header>
 
-        {/* Loading & Error States */}
-        {loading && (
-          <div className="text-center py-10 animate-pulse text-gray-500 dark:text-gray-400">
-            Loading data...
-          </div>
-        )}
-        {error && (
-          <div className="p-6 rounded-xl border-2 border-red-200 bg-red-50 dark:bg-red-900/40">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-
-        {!loading && !error && (
+        {loading ? (
+          <p className="text-center py-10">Loading...</p>
+        ) : (
           <>
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Kpi label="RMSE (USD)" value={currency(metrics.rmseUsd)} hint="Error in USD" icon="💵" />
-              <Kpi label="RMSE (%)" value={`${metrics.rmsePct.toFixed(2)}%`} hint="Relative Error" icon="📊" />
-              <Kpi label="MAPE" value={`${metrics.mape.toFixed(2)}%`} hint="Mean % Error" icon="🎯" />
-              <Kpi label="Eval Points" value={metrics.count} hint="Data Samples" icon="📈" />
-            </div>
+            {/* ========================= */}
+            {/* 1. KPI METRICS */}
+            {/* ========================= */}
+            <section>
+              <h2 className="text-2xl font-bold mb-4">Model KPI Metrics</h2>
 
-            {/* Training & Validation Loss Chart */}
-            <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-2xl font-bold mb-3">Training & Validation Loss</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Learning curve of model per epoch
-              </p>
-              <LossChart />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <Kpi label="RMSE (USD)" value={currency(metrics.rmseUsd)} hint="Error in USD" icon="💵" />
+                <Kpi label="RMSE (%)" value={`${metrics.rmsePct.toFixed(2)}%`} hint="Relative Error" icon="📊" />
+                <Kpi label="MAPE" value={`${metrics.mape.toFixed(2)}%`} hint="Mean % Error" icon="🎯" />
+              </div>
             </section>
 
-            {/* Evaluation Chart */}
-            <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-2xl font-bold mb-3">Model Performance</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Actual vs Predicted on test data
-              </p>
-              <EvalChart evalData={evalData} />
+            {/* ========================= */}
+            {/* 2. DATASET OVERVIEW */}
+            {/* ========================= */}
+            <section className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm">
+              <h2 className="text-2xl font-bold mb-4">Dataset Overview (Last 5 Entries)</h2>
+
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-100 dark:bg-gray-700">
+                    <th className="py-3 px-3 text-left">Date</th>
+                    <th className="py-3 px-3 text-right">Close Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.slice(-5).map((row, i) => (
+                    <tr key={i} className="border-b dark:border-gray-700">
+                      <td className="py-2 px-3">{row.date}</td>
+                      <td className="py-2 px-3 text-right">{currency(row.price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </section>
 
-            {/* Forecast Chart + Table */}
-            <section className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-2xl font-bold mb-3">30-Day Forecast</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Predicted prices based on last 60 days
-              </p>
+            {/* ========================= */}
+            {/* 3. MODEL SUMMARY */}
+            {/* ========================= */}
+            <section className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm">
+              <h2 className="text-2xl font-bold mb-4">Model Summary</h2>
+
+              <pre className="bg-gray-900 text-green-400 text-xs p-6 rounded-xl overflow-auto shadow-inner">
+{`
+Layer (type)                Output Shape        Param #
+--------------------------------------------------------
+conv1 (Conv1D)              (None, 60, 128)     512
+pool1 (MaxPooling1D)        (None, 30, 128)     0
+bilstm_1 (Bidirectional)    (None, 30, 300)     334,800
+dropout                     (None, 30, 300)     0
+bilstm_2 (Bidirectional)    (None, 100)         140,400
+dense_64 (Dense)            (None, 64)          6,464
+dense_32 (Dense)            (None, 32)          2,080
+out (Dense)                 (None, 1)           33
+--------------------------------------------------------
+Total params: 484,289
+Trainable params: 484,289
+Non-trainable params: 0
+`}
+              </pre>
+            </section>
+
+            {/* ========================= */}
+            {/* 4. LOSS CURVE */}
+            {/* ========================= */}
+            <section className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm">
+              <h2 className="text-2xl font-bold mb-4">Training & Validation Loss</h2>
+              <img src={trainLossImage} className="rounded-xl shadow-md" alt="Train Loss Chart" />
+            </section>
+
+            {/* ========================= */}
+            {/* 5. FORECAST */}
+            {/* ========================= */}
+            <section className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm">
+              <h2 className="text-2xl font-bold mb-4">30-Day Forecast</h2>
               <ForecastChart forecast={forecast} />
-              <ForecastTable forecast={forecast} />
+
+              <h3 className="text-xl font-semibold mt-6 mb-3">Forecast Table</h3>
+
+              <div className="overflow-x-auto border rounded-xl">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-100 dark:bg-gray-700">
+                      <th className="px-4 py-2 text-left">Date</th>
+                      <th className="px-4 py-2 text-right">Predicted Price (USD)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forecast.map((row, i) => (
+                      <tr key={i} className="border-b dark:border-gray-700">
+                        <td className="px-4 py-2">{row.date}</td>
+                        <td className="px-4 py-2 text-right">{currency(row.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </>
         )}
       </div>
 
-      {/* Floating theme toggle button */}
       <ThemeToggle />
     </div>
   );

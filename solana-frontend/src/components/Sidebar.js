@@ -1,7 +1,24 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 function Sidebar({ role, isOpen, onClose }) {
+  const location = useLocation();
+
+  // Untuk highlight menu yang sedang aktif
+  const isActive = (path) => location.pathname === path;
+
+  const menuStyle = (path) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 5px",
+    color: isActive(path) ? "#00FFA3" : "#fff",
+    fontWeight: isActive(path) ? "700" : "400",
+    textDecoration: "none",
+    fontSize: "16px",
+    transition: "0.2s ease",
+  });
+
   return (
     <>
       {isOpen && (
@@ -21,52 +38,78 @@ function Sidebar({ role, isOpen, onClose }) {
 
       <div
         style={{
-          width: "220px",
-          background: "#111",
+          width: "240px",
+          background: "#0f1117",
           color: "#fff",
           height: "100vh",
-          padding: "20px",
+          padding: "25px 20px",
           position: "fixed",
           top: 0,
           left: isOpen ? "0" : "-100%",
           transition: "left 0.3s ease",
           zIndex: 1000,
-          boxShadow: "2px 0 8px rgba(0,0,0,0.3)",
+          boxShadow: "3px 0 10px rgba(0,0,0,0.4)",
+          borderRight: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        <h3 style={{ marginBottom: "30px", color: "#00FFA3" }}>
-          {role === "admin" ? "Admin Panel" : "User Panel"}
+        {/* HEADER */}
+        <h3
+          style={{
+            marginBottom: "35px",
+            color: "#00FFA3",
+            fontSize: "20px",
+            fontWeight: "700",
+            letterSpacing: "0.5px",
+          }}
+        >
+          {role === "admin"
+            ? "Admin Panel"
+            : "User Panel"}
         </h3>
 
-        <p>
-          <Link to="/" style={{ color: "#fff" }} onClick={onClose}>
-            🏠 Home
-          </Link>
-        </p>
-        <p>
-          <Link to="/daily" style={{ color: "#fff" }} onClick={onClose}>
-            📅 Prediksi Harian
-          </Link>
-        </p>
-        <p>
-          <Link to="/monthly" style={{ color: "#fff" }} onClick={onClose}>
-            📆 Prediksi Bulanan
-          </Link>
-        </p>
+        {/* MENU LIST */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
 
+          <Link to="/" style={menuStyle("/")} onClick={onClose}>
+            <span>🏠</span> Home
+          </Link>
+
+          <Link to="/daily" style={menuStyle("/daily")} onClick={onClose}>
+            <span>📅</span> Prediksi Harian
+          </Link>
+
+          <Link to="/monthly" style={menuStyle("/monthly")} onClick={onClose}>
+            <span>📆</span> Prediksi Bulanan
+          </Link>
+
+          <Link to="/about" style={menuStyle("/about")} onClick={onClose}>
+            <span>ℹ️</span> About
+          </Link>
+        </div>
+
+        {/* DIVIDER */}
+        <hr
+          style={{
+            border: "0.5px solid rgba(255,255,255,0.1)",
+            margin: "25px 0",
+          }}
+        />
+
+        {/* ADMIN SECTION */}
         {role === "admin" && (
-          <>
-            <hr style={{ border: "0.5px solid #333", margin: "15px 0" }} />
-            <p>
-              <Link
-                to="/admin"
-                style={{ color: "#00FFA3", fontWeight: "bold" }}
-                onClick={onClose}
-              >
-                📘 Documentation
-              </Link>
-            </p>
-          </>
+          <div>
+            <Link
+              to="/admin"
+              style={{
+                ...menuStyle("/admin"),
+                color: "#00FFA3",
+                fontWeight: "700",
+              }}
+              onClick={onClose}
+            >
+              <span>📘</span> Documentation
+            </Link>
+          </div>
         )}
       </div>
     </>
